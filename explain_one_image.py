@@ -96,11 +96,20 @@ def prepare(path, size, mean, std, crop=True, flip_vertical=False, flip_horizont
 def main():
     # ---- User-modifiable settings ----
     ROOT = "./MMRDR/MMRDR-CFP"  # Root data directory
+    ground_truth_csv = Path(ROOT)/"FP.csv"
     CHECKPOINT = "./outputs/resnet50_weightedCE/best_model.pt"
     HEAD = "both"  # "logits_grade", "logits_lesion" or "both"
     OUTPUT_DIR = "./explanations_selected/resnet50_weightedCE"  # Output directory for explanation plots and manifest
     IMAGE = "ts001879.jpg" # Absolute path or path relative to ROOT
+    FLIP_VERT = False
+    FLIP_HORIZONTAL = False
+    
+    ground_truth_df = pd.read_csv(ground_truth_csv)
     # ---- Constants ----
+    ground_truth_row = ground_truth_df[ground_truth_df['image'] == f"img/{IMAGE}"]
+    gt_grade = int(ground_truth_row['grade'].values[0]) if not ground_truth_row.empty else None
+    gt_lesion = ground_truth_row['lesion'].values[0]
+    gt_lr = int(ground_truth_row['lr'].values[0]) if not ground_truth_row.empty else None
     a=argparse.Namespace(
         image=IMAGE, root=ROOT, checkpoint=CHECKPOINT, output_dir=OUTPUT_DIR, head=HEAD,
         grade_target=None, lesion_target=None,
@@ -118,7 +127,7 @@ def main():
     device=torch.device(a.device)
 
     # Prepare input image
-    x,rgb=prepare(image,a.image_size,a.mean,a.std,not a.no_crop_border); x=x.to(device)
+    x,rgb=prepare(image,a.image_size,a.mean,a.std,not a.no_crop_border, flip_vertical=FLIP_VERT, flip_horizontal=FLIP_HORIZONTAL); x=x.to(device)
     
     model=DRGradingResNet50(); load_checkpoint(model,a.checkpoint); model.to(device).eval()
     with torch.no_grad():
@@ -134,7 +143,7 @@ def main():
         cam=gradcam_pp(model,x,head,target)
         ig=integrated_gradients(model,x,head,target,a.ig_steps,a.ig_internal_batch)
         fn=f"{image.stem}_{head}_{name}.png"
-        plot(rgb,cam,ig,f"{image.name} | {head} | target={name} | score={prob:.3f}",out/fn)
+        plot(rgb,cam,ig,f"{image.name} | {head} | predicted={name} | confidence={prob:.3f}\nGround truth: grade={gt_grade}, lesion={gt_lesion}, lr={gt_lr}",out/fn)
         records.append({"image":str(image.resolve()),"head":head,"target":target,"target_name":name,"score":prob,"plot":fn})
         print(out/fn)
     (out/f"{image.stem}_manifest.json").write_text(json.dumps(records,indent=2))
