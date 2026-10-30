@@ -34,3 +34,24 @@ This project implements an end-to-end, reproducible, and explainable deep learni
 ├── explain_one_image.py          # Step 7: Grad-CAM++ and Integrated Gradients explanation generator
 ├── requirements.txt              # Python package dependencies
 └── README.md                     # Project documentation and reproducibility guide
+```
+
+## 3. Environment Setup
+To create an environment on Anaconda, please refer to below:
+```text
+# Clone the repository
+git clone https://github.com/ChuinHongYap/DR_Analysis_CFP.git
+cd DR_Analysis_CFP
+
+# Create and activate a virtual or conda environment
+conda create -n dr_cfp python=3.11 -y
+conda activate dr_cfp
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+## 4. Example Outputs
+Explainability output
+![](images/sample_explain.png)
+
